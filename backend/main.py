@@ -1,5 +1,4 @@
-
-import os, io, base64, logging, requests
+clearimport os, io, base64, logging, requests
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from PIL import Image
@@ -93,3 +92,6 @@ def generate_kit(payload: CampaignRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8001)

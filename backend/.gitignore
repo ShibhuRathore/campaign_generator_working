@@ -1,0 +1,20 @@
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
+.env/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+.coverage
+.coverage.*
+.cache
+
+
+# Node.js
+node_modules/
