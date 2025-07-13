@@ -1,5 +1,3 @@
-# ai_engine/insights_engine.py
-
 import os
 import google.generativeai as genai
 import json
@@ -7,7 +5,6 @@ import logging
 from dotenv import load_dotenv
 
 # --- Local Imports ---
-# This line is crucial. It imports the function from your new researcher file.
 from trend_researcher import get_live_fashion_trends
 
 # --- Setup ---
@@ -23,9 +20,7 @@ genai.configure(api_key=google_api_key)
 # --- Constants ---
 GEMINI_MODEL = "gemini-1.5-flash-latest"
 
-# ==============================================================================
-#  FINAL AI-POWERED INSIGHT ENGINE & OPPORTUNITY HUB
-# ==============================================================================
+
 
 def get_ai_powered_opportunities(seller_products: list):
     """
@@ -45,10 +40,7 @@ def get_ai_powered_opportunities(seller_products: list):
         logging.warning("Seller product list is empty. Cannot generate opportunities.")
         return []
 
-    # ==========================================================
-    # STEP 1: Get LIVE trends using our AI researcher.
-    # This replaces the old static/mock data.
-    # ==========================================================
+    
     logging.info("Calling the AI Trend Researcher to get live data...")
     live_trends_knowledge_base = get_live_fashion_trends()
 
@@ -58,14 +50,12 @@ def get_ai_powered_opportunities(seller_products: list):
 
     logging.info(f"Live Trend Researcher succeeded. Starting AI matching for {len(seller_products)} products.")
     
-    # ==========================================================
-    # STEP 2: Use the live trends to find matching products via an LLM.
-    # ==========================================================
+   
 
-    # Convert the product list into a simple string format for the prompt
+    # Converting the product list into a simple string format for the prompt
     product_catalogue_str = "\n".join([f"- ID: {p['product_id']}, Name: {p['product_name']}, Description: {p.get('description', '')}" for p in seller_products])
 
-    # The Master Prompt: It now uses the live trend data we just fetched.
+    
     prompt = f"""
     You are an expert AI merchandiser for a hyperlocal e-commerce platform in India.
     Your task is to analyze a list of current trends (discovered via live web research) and a seller's product catalogue, then identify high-potential sales opportunities.
@@ -98,16 +88,16 @@ def get_ai_powered_opportunities(seller_products: list):
         model = genai.GenerativeModel(GEMINI_MODEL)
         response = model.generate_content(prompt)
         
-        # Clean up the response to ensure it's valid JSON
+        
         clean_json_str = response.text.strip().replace("```json", "").replace("```", "")
         
         ai_opportunities = json.loads(clean_json_str)
         logging.info(f"AI successfully identified {len(ai_opportunities)} opportunities from live trends.")
 
-        # Final step: Merge AI results with full product data to send to the frontend
+        
         enriched_opportunities = []
         for opp in ai_opportunities:
-            # Reconstruct the full product objects from the IDs
+            
             recommended_products = [p for p in seller_products if p['product_id'] in opp['recommended_product_ids']]
             if recommended_products:
                 opp['recommended_products'] = recommended_products
@@ -117,14 +107,14 @@ def get_ai_powered_opportunities(seller_products: list):
 
     except Exception as e:
         logging.error(f"Error calling Gemini for opportunity analysis: {e}")
-        # Use a placeholder for the response text in case the API call itself failed
+        
         response_text = "No response"
         if 'response' in locals() and hasattr(response, 'text'):
             response_text = response.text
         logging.error(f"Failed prompt response: {response_text}")
-        return [] # Return an empty list on failure
+        return [] 
 
-# --- Example of how to use this file ---
+# --- Testing ---
 if __name__ == '__main__':
     # This is a sample seller's product catalogue.
     MOCK_SELLER_CATALOGUE = [
