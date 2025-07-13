@@ -1,5 +1,3 @@
-# ai_engine/trend_researcher.py
-
 import os
 import google.generativeai as genai
 import requests
@@ -31,13 +29,13 @@ def get_live_fashion_trends():
     """
     logging.info("Starting AI-powered web research for live fashion trends...")
     
-    # 1. Perform a targeted Google Search
+    # 1. Performing a targeted Google Search
     search_query = "latest ethnic fashion trends India 2024 for festivals"
     params = {
         'key': search_api_key,
         'cx': search_engine_id,
         'q': search_query,
-        'num': 5 # Get the top 5 results
+        'num': 5 # Getting the top 5 results
     }
     
     try:
@@ -49,7 +47,7 @@ def get_live_fashion_trends():
             logging.warning("Google Search returned no results.")
             return []
             
-        # Extract snippets from search results to feed to the LLM
+        # Extracting snippets from search results to feed to the LLM
         search_context = "\n".join([f"Source: {res['link']}\nSnippet: {res['snippet']}" for res in search_results])
         logging.info(f"Gathered context from {len(search_results)} web sources.")
 
@@ -57,7 +55,7 @@ def get_live_fashion_trends():
         logging.error(f"Error calling Google Search API: {e}")
         return []
 
-    # 2. Use Gemini to Analyze the Research and Create the Trend Base
+    # 2. Using Gemini to Analyze the Research and Create the Trend Base
     prompt = f"""
     You are an expert fashion analyst. I have provided you with snippets from recent articles about ethnic fashion trends in India.
     Your task is to read all of this information and synthesize it into a structured JSON list of distinct trends.
@@ -104,7 +102,7 @@ def get_live_fashion_trends():
         logging.error(f"Error in Gemini analysis of web research: {e}")
         return []
 
-# --- Example of how to use this file ---
+# --- Testing ---
 if __name__ == '__main__':
     print("--- Testing the Live AI Trend Researcher ---")
     trends = get_live_fashion_trends()
