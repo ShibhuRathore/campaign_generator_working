@@ -1,20 +1,29 @@
+
 import os, io, base64, logging, requests
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from PIL import Image
 from dotenv import load_dotenv
 import google.generativeai as genai
-from huggingface_hub import InferenceClient
 from fastapi.middleware.cors import CORSMiddleware
+import sys
+import pathlib
+
+current_dir = pathlib.Path(__file__).parent.resolve()
+sys.path.append(str(current_dir))
+
+from auth.auth_router import router as auth_router
 
 load_dotenv()
 
 # Setup Keys
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
-hf_client = InferenceClient(token=os.getenv("HUGGINGFACE_API_TOKEN"))
 
 # Constants
 GOOGLE_TEXT_MODEL = "models/gemini-1.5-flash-latest"
+FALLBACK_IMG = "https://i.imgur.com/ExdKOOz.png"
+STABILITY_API_URL = "https://api.stability.ai/v1/generation/stable-diffusion-v1-6/text-to-image"
+STABILITY_API_KEY = os.getenv("STABILITY_API_KEY")
 
 # App
 app = FastAPI()
@@ -24,6 +33,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.include_router(auth_router, prefix="/auth")
 
 class CampaignRequest(BaseModel):
     product_image_url: str
@@ -41,19 +51,39 @@ def generate_kit(payload: CampaignRequest):
         generated_ad_copy = response.text.strip()
 
         logging.info("Analyzing product image")
-        response = requests.get(payload.product_image_url, headers={'User-Agent': 'Mozilla/5.0'})
-        product_image = Image.open(io.BytesIO(response.content))
+        try:
+            response = requests.get(payload.product_image_url, headers={'User-Agent': 'Mozilla/5.0'})
+            product_image = Image.open(io.BytesIO(response.content))
+        except Exception:
+            response = requests.get(FALLBACK_IMG, headers={'User-Agent': 'Mozilla/5.0'})
+            product_image = Image.open(io.BytesIO(response.content))
+
         vision_prompt = "Describe the clothing item in this image in a short phrase like 'red silk saree with gold border'."
         response = model.generate_content([vision_prompt, product_image])
         image_description = response.text.strip()
 
-        logging.info("Generating model image")
-        final_prompt = f"cinematic photo of a happy young indian woman wearing ({image_description}), celebrating {payload.event_name} in {payload.location}, festive background, sharp focus"
-        image = hf_client.text_to_image(prompt=final_prompt, negative_prompt="blurry, watermark")
-        buffer = io.BytesIO()
-        image.save(buffer, format="JPEG")
-        base64_image = base64.b64encode(buffer.getvalue()).decode('utf-8')
-        image_url = f"data:image/jpeg;base64,{base64_image}"
+        logging.info("Generating model image with Stability AI")
+        headers = {
+            "Authorization": f"Bearer {STABILITY_API_KEY}",
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+        }
+        payload_json = {
+            "text_prompts": [{"text": f"cinematic photo of a happy young indian woman wearing ({image_description}), celebrating {payload.event_name} in {payload.location}, festive background, sharp focus"}],
+            "cfg_scale": 7,
+            "clip_guidance_preset": "FAST_BLUE",
+            "height": 512,
+            "width": 512,
+            "samples": 1,
+            "steps": 30
+        }
+        response = requests.post(STABILITY_API_URL, headers=headers, json=payload_json)
+        if response.status_code != 200:
+            raise HTTPException(status_code=500, detail="Stability AI image generation failed.")
+
+        result = response.json()
+        image_base64 = result["artifacts"][0]["base64"]
+        image_url = f"data:image/png;base64,{image_base64}"
 
         return {
             "generated_image_url": image_url,
@@ -62,3 +92,4 @@ def generate_kit(payload: CampaignRequest):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
