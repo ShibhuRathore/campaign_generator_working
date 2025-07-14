@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import axios from "axios";
 import { Button } from "@/components/ui/button";
@@ -12,19 +11,24 @@ const CampaignGenerator = () => {
   const [form, setForm] = useState({
     product_image_url: "https://encrypted-tbn0.gstatic.com/shopping?q=tbn:ANd9GcTAsDKKwiUTw_qkASFGUh3bR7WUHAfZ7ZBrKfPYYLfoV5n84-pRjf5BPGYhY1r4FDE1tdPvHWk23IpNkOdkF6EwFFkAg5iTxz9jfRMwIaKtPdx3M62elpLQ&usqp=CAc",
     product_name: "White Suit Set",
+    product_category: "Women's Clothing", // ✅ ADDED
+    price: "999",                          // ✅ ADDED
     event_name: "diwali",
     location: "Lucknow"
   });
+
   const [loading, setLoading] = useState(false);
   const [kit, setKit] = useState<{ generated_image_url: string; generated_ad_copy: string } | null>(null);
 
   const handleGenerate = async () => {
     setLoading(true);
     try {
-      const { data } = await axios.post("http://localhost:8000/generate-kit", form);
+      console.log("🔁 Sending to backend:", form); // Debug log
+      const { data } = await axios.post(import.meta.env.VITE_AI_API_URL + "/generate-kit", form);
       setKit(data);
       toast({ title: "Success", description: "Campaign generated" });
     } catch (e) {
+      console.error("❌ Generation failed:", e);
       toast({ title: "Error", description: "Generation failed" });
     } finally {
       setLoading(false);
@@ -61,13 +65,21 @@ const CampaignGenerator = () => {
           <h1 className="text-3xl font-bold text-foreground mb-8">Campaign Generator</h1>
 
           {/* Festival & Region Input */}
-          <div className="grid grid-cols-2 gap-6 mb-8">
+          <div className="grid grid-cols-2 gap-6 mb-4">
             <Input type="search" placeholder="Search Festival (e.g. Diwali)" value={form.event_name} onChange={(e) => setForm({ ...form, event_name: e.target.value })} className="bg-purple-100 border-purple-300" />
             <Input type="search" placeholder="Search Location (e.g. Jaipur)" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} className="bg-purple-100 border-purple-300" />
           </div>
 
+          {/* Category & Price Input */}
+          <div className="grid grid-cols-2 gap-6 mb-8">
+            <Input type="text" placeholder="Product Category (e.g. Women's Clothing)" value={form.product_category} onChange={(e) => setForm({ ...form, product_category: e.target.value })} className="bg-purple-100 border-purple-300" />
+            <Input type="number" placeholder="Price (e.g. 999)" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} className="bg-purple-100 border-purple-300" />
+          </div>
+
           {/* Generate Button */}
-          <Button className="bg-purple-500 hover:bg-purple-600 text-white px-8 py-3 rounded-full text-lg mb-6" onClick={handleGenerate} disabled={loading}>{loading ? "Generating…" : "Generate Campaign"}</Button>
+          <Button className="bg-purple-500 hover:bg-purple-600 text-white px-8 py-3 rounded-full text-lg mb-6" onClick={handleGenerate} disabled={loading}>
+            {loading ? "Generating…" : "Generate Campaign"}
+          </Button>
 
           {kit && (
             <div className="grid md:grid-cols-3 gap-8">
