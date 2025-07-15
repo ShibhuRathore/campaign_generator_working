@@ -100,6 +100,8 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useParams } from "react-router-dom";
 import { Flame, MapPin, Search } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+
 
 const insightData: Record<string, any> = {
   diwali: {

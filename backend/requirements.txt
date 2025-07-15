@@ -6,3 +6,4 @@ python-dotenv
 google-generativeai
 requests
 replicate
+pip freeze | grep requests >> requirements.txt

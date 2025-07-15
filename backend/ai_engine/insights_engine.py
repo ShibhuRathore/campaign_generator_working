@@ -1,134 +1,260 @@
-import os
-import google.generativeai as genai
+# import json
+# import logging
+# import re
+# from collections import defaultdict
+# from ai_engine.trend_researcher import fetch_ethnic_trends
+
+# # --- Logging Setup ---
+# logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+
+# # --- Helper Functions ---
+# def normalize(text: str) -> str:
+#     """Convert text to lowercase and remove punctuation for matching."""
+#     return re.sub(r"[^a-z0-9\s]", " ", text.lower())
+
+# def score_product_against_keyword(product: dict, keyword: str) -> int:
+#     """
+#     Simple score: +2 if keyword in product name, +1 if in description.
+#     """
+#     keyword = keyword.lower()
+#     name_score = 2 if keyword in normalize(product.get("product_name", "")) else 0
+#     desc_score = 1 if keyword in normalize(product.get("description", "")) else 0
+#     return name_score + desc_score
+
+# # --- Main Matching Function ---
+# # def get_ai_powered_opportunities(seller_products: list) -> list:
+# #     """
+# #     Matches seller products to trends using keyword scoring (no Gemini).
+# #     """
+# #     if not seller_products:
+# #         logging.warning("Seller product list is empty.")
+# #         return []
+
+# #     raw_trend_data = fetch_ethnic_trends(["Diwali", "Rakhi", "Karva Chauth", "Durga Puja"])
+# #     if not raw_trend_data:
+# #         logging.error("No trend data fetched.")
+# #         return []
+
+# #     fashion_keywords = [
+# #         "saree", "lehenga", "anarkali", "kurta", "salwar", "choli",
+# #         "organza", "banarasi", "pastel", "zari", "mirror", "chaniya"
+# #     ]
+
+# #     opportunities = []
+
+# #     for trend_group in raw_trend_data:
+# #         festival = trend_group["festival"]
+# #         for trend in trend_group["trends"]:
+# #             trend_title = trend["title"]
+
+# #             # --- Smart Keyword Extraction ---
+# #             normalized_title = normalize(trend_title)
+# #             found = [kw for kw in fashion_keywords if kw in normalized_title]
+# #             keyword = found[0] if found else None
+# #             if not keyword:
+# #                 continue  # Skip if no keyword found
+
+# #             scored = []
+# #             for product in seller_products:
+# #                 score = score_product_against_keyword(product, keyword)
+# #                 if score > 0:
+# #                     scored.append((score, product))
+
+# #             scored.sort(reverse=True, key=lambda x: x[0])
+# #             top_products = [prod for _, prod in scored[:2]]
+
+# #             if top_products:
+# #                 opportunities.append({
+# #                     "trend_name": trend_title,
+# #                     "trend_context": f"Trending during {festival}. Related to keyword: {keyword}.",
+# #                     "recommended_product_ids": [p["product_id"] for p in top_products],
+# #                     "recommended_products": top_products
+# #                 })
+
+# #     logging.info(f"✅ Found {len(opportunities)} matched opportunities.")
+# #     return opportunities
+# def get_ai_powered_opportunities(seller_products: list) -> list:
+#     if not seller_products:
+#         logging.warning("Seller product list is empty.")
+#         return []
+
+#     raw_trend_data = fetch_ethnic_trends(["Diwali", "Rakhi", "Karva Chauth", "Durga Puja"])
+#     if not raw_trend_data:
+#         logging.error("No trend data fetched.")
+#         return []
+
+#     # Manual mapping of some known keywords for each festival
+#     fallback_keywords = {
+#         "Diwali": ["banarasi", "zari", "lehenga", "saree"],
+#         "Rakhi": ["pastel", "organza", "anarkali"],
+#         "Karva Chauth": ["choli", "mirror", "saree"],
+#         "Durga Puja": ["kurta", "salwar", "anarkali"]
+#     }
+
+#     opportunities = []
+
+#     for trend_group in raw_trend_data:
+#         festival = trend_group["festival"]
+#         keywords = fallback_keywords.get(festival, [])
+
+#         for trend in trend_group["trends"]:
+#             trend_title = trend["title"]
+
+#             matched_products = set()
+#             for keyword in keywords:
+#                 for product in seller_products:
+#                     score = score_product_against_keyword(product, keyword)
+#                     if score > 0:
+#                         matched_products.add((score, product["product_id"], product))
+
+#             sorted_matches = sorted(list(matched_products), reverse=True, key=lambda x: x[0])
+#             top_products = [p for _, _, p in sorted_matches[:2]]
+
+#             if top_products:
+#                 opportunities.append({
+#                     "trend_name": trend_title,
+#                     "trend_context": f"Trending during {festival}",
+#                     "recommended_product_ids": [p["product_id"] for p in top_products],
+#                     "recommended_products": top_products
+#                 })
+
+#     logging.info(f"✅ Found {len(opportunities)} matched opportunities.")
+#     return opportunities
+
+# # --- Test Harness ---
+# if __name__ == "__main__":
+#     MOCK_SELLER_PRODUCTS = [
+#         {
+#             "product_id": "p-01",
+#             "product_name": "Royal Red & Gold Banarasi Silk Saree",
+#             "description": "Classic zari weave, perfect for weddings."
+#         },
+#         {
+#             "product_id": "p-02",
+#             "product_name": "Pastel Lavender Organza Saree",
+#             "description": "Lightweight sheer organza in trendy pastel shade."
+#         },
+#         {
+#             "product_id": "p-03",
+#             "product_name": "Mint Green Pastel Anarkali Suit",
+#             "description": "Floor-length suit, great for daytime functions."
+#         }
+#     ]
+
+#     print("\n🔍 Testing AI Matching Engine...\n")
+#     results = get_ai_powered_opportunities(MOCK_SELLER_PRODUCTS)
+
+#     if results:
+#         print(f"📦 Matched {len(results)} trend opportunities:\n")
+#         print(json.dumps(results, indent=2, ensure_ascii=False))
+#     else:
+#         print("⚠️ No matches found.")
 import json
 import logging
-from dotenv import load_dotenv
+import re
+from ai_engine.trend_researcher import fetch_ethnic_trends
 
-# --- Local Imports ---
-from trend_researcher import get_live_fashion_trends
+# --- Logging Setup ---
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
-# --- Setup ---
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-load_dotenv()
+# --- Helper Functions ---
+def normalize(text: str) -> str:
+    """Convert text to lowercase and remove punctuation for matching."""
+    return re.sub(r"[^a-z0-9\s]", " ", text.lower())
 
-# --- Key Verification ---
-google_api_key = os.getenv("GOOGLE_API_KEY")
-if not google_api_key:
-    raise ValueError("FATAL ERROR: GOOGLE_API_KEY missing from .env file.")
-genai.configure(api_key=google_api_key)
-
-# --- Constants ---
-GEMINI_MODEL = "gemini-1.5-flash-latest"
-
-
-
-def get_ai_powered_opportunities(seller_products: list):
+def score_product_against_keyword(product: dict, keyword: str) -> int:
     """
-    This is the main AI function for finding trends and recommending products.
-    It first uses an AI researcher to discover live trends from the web,
-    and then uses an LLM to perform semantic matching against the seller's products.
-
-    Args:
-        seller_products (list): A list of the seller's products from the database.
-                                Each product should be a dictionary with 'product_id', 
-                                'product_name', and 'description'.
-
-    Returns:
-        list: A list of opportunities, where the AI has matched live trends to products.
+    Simple score: +2 if keyword in product name, +1 if in description.
     """
+    keyword = keyword.lower()
+    name_score = 2 if keyword in normalize(product.get("product_name", "")) else 0
+    desc_score = 1 if keyword in normalize(product.get("description", "")) else 0
+    return name_score + desc_score
+
+# --- Main Matching Function ---
+def get_ai_powered_opportunities(seller_products: list) -> list:
     if not seller_products:
-        logging.warning("Seller product list is empty. Cannot generate opportunities.")
+        logging.warning("Seller product list is empty.")
         return []
 
-    
-    logging.info("Calling the AI Trend Researcher to get live data...")
-    live_trends_knowledge_base = get_live_fashion_trends()
-
-    if not live_trends_knowledge_base:
-        logging.error("The AI Trend Researcher failed to return any trends. Opportunity analysis cannot proceed.")
+    raw_trend_data = fetch_ethnic_trends(["Diwali", "Rakhi", "Karva Chauth", "Durga Puja"])
+    if not raw_trend_data:
+        logging.error("No trend data fetched.")
         return []
 
-    logging.info(f"Live Trend Researcher succeeded. Starting AI matching for {len(seller_products)} products.")
-    
-   
+    # Manual fallback mapping of keywords per festival
+    fallback_keywords = {
+        "Diwali": ["banarasi", "zari", "lehenga", "saree"],
+        "Rakhi": ["pastel", "organza", "anarkali"],
+        "Karva Chauth": ["choli", "mirror", "saree"],
+        "Durga Puja": ["kurta", "salwar", "anarkali"]
+    }
 
-    # Converting the product list into a simple string format for the prompt
-    product_catalogue_str = "\n".join([f"- ID: {p['product_id']}, Name: {p['product_name']}, Description: {p.get('description', '')}" for p in seller_products])
+    opportunities = []
 
-    
-    prompt = f"""
-    You are an expert AI merchandiser for a hyperlocal e-commerce platform in India.
-    Your task is to analyze a list of current trends (discovered via live web research) and a seller's product catalogue, then identify high-potential sales opportunities.
+    for trend_group in raw_trend_data:
+        festival = trend_group["festival"]
+        keywords = fallback_keywords.get(festival, [])
 
-    **Current Trends Knowledge Base (Discovered via Live Web Research):**
-    {json.dumps(live_trends_knowledge_base, indent=2)}
+        for trend in trend_group["trends"]:
+            trend_title = trend["title"]
 
-    **Seller's Product Catalogue:**
-    {product_catalogue_str}
+            matched_products = []
+            for keyword in keywords:
+                for product in seller_products:
+                    score = score_product_against_keyword(product, keyword)
+                    if score > 0:
+                        matched_products.append((score, product["product_id"], product))
 
-    **Your Task:**
-    Analyze both lists. For each trend, find the top 1-2 BEST matching products from the seller's catalogue. A match should be based on style, occasion, fabric, and color mentioned in the trend's context and the product's name/description.
+            # Sort by score descending
+            sorted_matches = sorted(matched_products, reverse=True, key=lambda x: x[0])
 
-    **Output Format:**
-    You MUST respond with ONLY a valid JSON array `[]`. Do not write any explanation before or after the JSON.
-    Each object in the array should have these exact keys: "trend_name", "trend_context", and "recommended_product_ids".
-    "recommended_product_ids" must be a list of the matching product IDs (e.g., ["p-01", "p-03"]).
+            # Top 2 unique products only
+            seen_ids = set()
+            top_products = []
+            for _, pid, prod in sorted_matches:
+                if pid not in seen_ids:
+                    top_products.append(prod)
+                    seen_ids.add(pid)
+                if len(top_products) == 2:
+                    break
 
-    Example of a perfect response:
-    [
-      {{
-        "trend_name": "Pastel Paradise Lehengas",
-        "trend_context": "Subtle pastel shades like mint green and lavender are dominating the festive wear scene.",
-        "recommended_product_ids": ["p-05"]
-      }}
+            if top_products:
+                opportunities.append({
+                    "trend_name": trend_title,
+                    "trend_context": f"Trending during {festival}",
+                    "recommended_product_ids": [p["product_id"] for p in top_products],
+                    "recommended_products": top_products
+                })
+
+    logging.info(f"✅ Found {len(opportunities)} matched opportunities.")
+    return opportunities
+
+# --- Test Harness ---
+if __name__ == "__main__":
+    MOCK_SELLER_PRODUCTS = [
+        {
+            "product_id": "p-01",
+            "product_name": "Royal Red & Gold Banarasi Silk Saree",
+            "description": "Classic zari weave, perfect for weddings."
+        },
+        {
+            "product_id": "p-02",
+            "product_name": "Pastel Lavender Organza Saree",
+            "description": "Lightweight sheer organza in trendy pastel shade."
+        },
+        {
+            "product_id": "p-03",
+            "product_name": "Mint Green Pastel Anarkali Suit",
+            "description": "Floor-length suit, great for daytime functions."
+        }
     ]
-    """
 
-    try:
-        model = genai.GenerativeModel(GEMINI_MODEL)
-        response = model.generate_content(prompt)
-        
-        
-        clean_json_str = response.text.strip().replace("```json", "").replace("```", "")
-        
-        ai_opportunities = json.loads(clean_json_str)
-        logging.info(f"AI successfully identified {len(ai_opportunities)} opportunities from live trends.")
+    print("\n🔍 Testing AI Matching Engine...\n")
+    results = get_ai_powered_opportunities(MOCK_SELLER_PRODUCTS)
 
-        
-        enriched_opportunities = []
-        for opp in ai_opportunities:
-            
-            recommended_products = [p for p in seller_products if p['product_id'] in opp['recommended_product_ids']]
-            if recommended_products:
-                opp['recommended_products'] = recommended_products
-                enriched_opportunities.append(opp)
-
-        return enriched_opportunities
-
-    except Exception as e:
-        logging.error(f"Error calling Gemini for opportunity analysis: {e}")
-        
-        response_text = "No response"
-        if 'response' in locals() and hasattr(response, 'text'):
-            response_text = response.text
-        logging.error(f"Failed prompt response: {response_text}")
-        return [] 
-
-# --- Testing ---
-if __name__ == '__main__':
-    # This is a sample seller's product catalogue.
-    MOCK_SELLER_CATALOGUE = [
-        {"product_id": "p-01", "product_name": "Royal Red and Gold Banarasi Silk Saree", "description": "A classic saree for festivals and weddings, woven with golden Zari thread.", "image_url": "..."},
-        {"product_id": "p-02", "product_name": "Lightweight Lavender Organza Saree", "description": "A sheer and elegant organza saree in a trendy pastel lavender color, perfect for summer events.", "image_url": "..."},
-        {"product_id": "p-03", "product_name": "Gujarati Mirror-Work Chaniya Choli", "description": "A vibrant and colorful traditional outfit perfect for Garba nights. Features intricate mirror and thread work.", "image_url": "..."},
-        {"product_id": "p-04", "product_name": "Mint Green Pastel Anarkali Suit", "description": "A floor-length Anarkali suit in a soothing pastel green. Ideal for daytime weddings or festive parties.", "image_url": "..."}
-    ]
-    
-    print("--- Testing the FINAL AI-Powered Insight Engine & Opportunity Hub ---")
-    seller_opportunities = get_ai_powered_opportunities(seller_products=MOCK_SELLER_CATALOGUE)
-    
-    if seller_opportunities:
-        print(f"\n--- AI Found {len(seller_opportunities)} Live Opportunities: ---")
-        print(json.dumps(seller_opportunities, indent=2))
+    if results:
+        print(f"📦 Matched {len(results)} trend opportunities:\n")
+        print(json.dumps(results, indent=2, ensure_ascii=False))
     else:
-        print("\n--- AI failed to find any opportunities. Check logs and API keys. ---")
+        print("⚠️ No matches found.")

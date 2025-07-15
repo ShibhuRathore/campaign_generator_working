@@ -101,6 +101,121 @@
 #         logging.error(str(e))
 #         raise HTTPException(status_code=500, detail="Campaign generation failed. " + str(e))
 # backend/main.py
+# import os
+# import replicate
+# import logging
+# from fastapi import FastAPI, HTTPException
+# from fastapi.middleware.cors import CORSMiddleware
+# from pydantic import BaseModel, HttpUrl
+# from dotenv import load_dotenv
+# from typing import Optional
+
+# # Initialize FastAPI app FIRST before using it below
+# app = FastAPI()
+
+# # Load environment variables
+# load_dotenv()
+
+# REPLICATE_API_KEY = os.getenv("REPLICATE_API_KEY")
+# if not REPLICATE_API_KEY:
+#     raise RuntimeError("❌ REPLICATE_API_KEY missing from .env")
+
+# # Initialize Replicate client
+# replicate_client = replicate.Client(api_token=REPLICATE_API_KEY)
+
+# # Enable CORS for frontend integration
+# app.add_middleware(
+#     CORSMiddleware,
+#     allow_origins=["*"],  # You can restrict this in prod
+#     allow_credentials=True,
+#     allow_methods=["*"],
+#     allow_headers=["*"],
+# )
+
+# # Request model
+# class KitRequest(BaseModel):
+#     event_name: str
+#     location: str
+#     product_name: str
+#     product_category: str
+#     price: str
+
+# # Response model
+# class KitResponse(BaseModel):
+#     description: str
+#     generated_image_url: HttpUrl
+#     ad_copy: str
+#     flyer_text: str
+
+# # 🔧 Manually construct prompt (no Gemini)
+# def generate_prompt_description(event_name: str, location: str, product_name: str, product_category: str) -> str:
+#     prompt = (
+#         f"hyper-realistic photo of an Indian woman wearing {product_name}. "
+#         f"She is celebrating {event_name} in {location}, vibrant festive background, "
+#         f"8k, cinematic lighting, photorealism, DSLR shot"
+#     )
+#     return prompt.encode("utf-8", "ignore").decode("utf-8")
+
+# # 🎨 Generate image from Replicate
+# def generate_festive_image(prompt: str) -> Optional[str]:
+#     try:
+#         print("INFO: 📸 Replicate prompt →", prompt)
+
+#         output = replicate_client.run(
+#             "stability-ai/sdxl:7762fd07cf82c948538e41f63f77d685e02b063e37e496e96eefd46c929f9bdc",
+#             input={
+#                 "prompt": prompt,
+#                 "width": 1024,
+#                 "height": 1024,
+#                 "num_outputs": 1
+#             }
+#         )
+
+#         if isinstance(output, list) and len(output) > 0:
+#             image_url = str(output[0])
+#             print("✅ Generated image URL:", image_url)
+#             return image_url
+#         else:
+#             raise ValueError("Unexpected output format from Replicate")
+
+#     except Exception as e:
+#         logging.error(f"Image generation failed: {e}")
+#         return None
+
+# # 🚀 Main API route
+# @app.post("/generate-kit", response_model=KitResponse)
+# def generate_campaign(payload: KitRequest):
+#     # Step 1: Generate description prompt
+#     img_desc = generate_prompt_description(
+#         payload.event_name, payload.location, payload.product_name, payload.product_category
+#     )
+
+#     # Step 2: Generate image
+#     image_url = generate_festive_image(img_desc)
+#     if not image_url:
+#         raise HTTPException(status_code=500, detail="Image generation failed")
+
+#     # Step 3: Create ad copy and flyer
+#     ad_copy = f"Celebrate {payload.event_name} in {payload.location} with our latest {payload.product_name}!"
+#     flyer_text = (
+#         f"🎉 {payload.product_name}\n"
+#         f"👗 Category: {payload.product_category}\n"
+#         f"💸 Price: ₹{payload.price}\n"
+#         f"🛍️ Available now for {payload.event_name} in {payload.location}!"
+#     )
+
+#     return KitResponse(
+#         description=img_desc,
+#         generated_image_url=image_url,
+#         ad_copy=ad_copy,
+#         flyer_text=flyer_text
+#     )
+
+# # ✅ Import and attach trend opportunity router AFTER app is defined
+# from ai_engine.opportunity_router import router as opportunity_router
+# app.include_router(opportunity_router)
+
+
 import os
 import replicate
 import logging
@@ -109,6 +224,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, HttpUrl
 from dotenv import load_dotenv
 from typing import Optional
+
+# Initialize FastAPI app FIRST before using it below
+app = FastAPI()
 
 # Load environment variables
 load_dotenv()
@@ -119,9 +237,6 @@ if not REPLICATE_API_KEY:
 
 # Initialize Replicate client
 replicate_client = replicate.Client(api_token=REPLICATE_API_KEY)
-
-# Initialize FastAPI app
-app = FastAPI()
 
 # Enable CORS for frontend integration
 app.add_middleware(
@@ -211,3 +326,6 @@ def generate_campaign(payload: KitRequest):
         flyer_text=flyer_text
     )
 
+# ✅ Import and attach trend opportunity router AFTER app is defined
+from ai_engine.opportunity_router import router as opportunity_router
+app.include_router(opportunity_router)

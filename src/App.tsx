@@ -14,7 +14,7 @@ import DebugPage from "./pages/DebugPage";
 import CampaignGenerator from "./pages/CampaignGenerator";
 import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
-
+import OpportunitiesPage from './pages/Opportunitypage';
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -39,7 +39,7 @@ const App = () => (
               <Route path="/debug" element={<DebugPage />} />
             </>
           )}
-          
+           <Route path="/trends/opportunities" element={<OpportunitiesPage />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="/insights/:festival" element={<FestivalInsightPage />} />
 
