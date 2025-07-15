@@ -173,6 +173,8 @@ import { toast } from "@/components/ui/use-toast";
 import { GoogleMap, Marker, InfoWindow, useJsApiLoader } from "@react-google-maps/api";
 import { useState } from "react";
 
+
+
 const center = { lat: 23.5937, lng: 80.9629 }; // Center of India
 
 const cityCoords: Record<string, { lat: number; lng: number }> = {
@@ -317,18 +319,32 @@ const Trends = () => {
             )}
 
             <div className="mt-6">
-              <Button
-                className="bg-pink-500 hover:bg-pink-600 text-white px-8 py-3 rounded-full"
-                onClick={() => {
-                  toast({
-                    title: "Catalogue synced!",
-                    description: "Matching your products to trending styles...",
-                  });
-                  navigate("/trends/opportunities"); // ✅ Redirects to Opportunity page
-                }}
-              >
-                Sync Catalogue
-              </Button>
+            <Button
+  className="bg-pink-500 hover:bg-pink-600 text-white px-8 py-3 rounded-full"
+  onClick={() => {
+    // TODO: replace with real seller_products pulled from DB/state
+    const catalogue = [
+      {
+        product_id: "p-01",
+        product_name: "Royal Red & Gold Banarasi Silk Saree",
+        product_category: "Saree",
+        tags: ["ethnic", "banarasi", "wedding", "diwali"],
+        description: "Classic zari weave, perfect for weddings."
+      },
+      {
+        product_id: "p-02",
+        product_name: "Pastel Lavender Organza Saree",
+        product_category: "Saree",
+        tags: ["lightweight", "pastel"],
+        description: "Lightweight sheer organza in trendy pastel shade."
+      }
+    ];
+
+    navigate("/trends/opportunities", { state: { seller_products: catalogue } });
+  }}
+>
+  Sync Catalogue
+</Button>
             </div>
           </div>
         </div>
